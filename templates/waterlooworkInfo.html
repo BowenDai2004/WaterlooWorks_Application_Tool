@@ -1,0 +1,51 @@
+{% extends "navBar.html" %}
+{% block main %}
+        <form action = "/waterlooworkLogin" method="POST">
+            <input type="email" id = "WaterlooEmail" name = "WaterlooEmail" placeholder="Waterloo email" required>
+            <br>
+
+            <!--Is it save??-->
+            <!--offer the choice to open the webpage and let user to enter their password and username-->
+            <input type="password" id="Password" name = "Password" placeholder="Password" required>
+            <br>
+            
+            <input type = "text" id="ResumeName" name = "ResumeName" placeholder="Resume name" required>
+            <br>
+
+            <input type="text" id="JobFolderName" name = "JobFolderName" placeholder="Job folder" required>
+            <br>
+
+            <button id="submitBtn" type="submit">next</button>
+        </form>
+        <div id = "verificationCode"></div>
+
+        <script>
+            document.getElementById("submitBtn").addEventListener("click", async() =>{
+                const btn = document.getElementById("submitBtn");
+
+                btn.disabled = true;
+                btn.textContent = "Processing";
+
+                const verificationCodeRequest = await fetch("/waterlooworkLogin",{
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        "WaterlooEmail": document.getElementById("WaterlooEmail").value,
+                        "Password": document.getElementById("Password").value
+                    })
+                });
+                const verificationCode = await verificationCodeRequest.text();
+                document.getElementById("verificationCode").textContent = verificationCode;
+                
+                const generatePDFCoverLetterRequest = await fetch("/generatePDFCoverLetter",{
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        "JobFolderName": document.getElementById("JobFolderName").value
+                    })
+                });
+                window.location.href = "/coverLetterList";
+            })
+        </script>
+
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "navBar.html" %}
+
+{% block main %}
+        <h1>Enter your resume</h1>
+        <form method="POST">
+            
+            <!-- TODO get resume pdf and extract the txt resume by script-->
+            <textarea type = "text" id="Resume" name  = "Resume" placeholder="Resume">{{ resume }}</textarea>
+            <br>
+
+            <!--TODO generate cover letter for a single position-->
+
+            <button type="submit">Next</button>
+        </form>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+        <form method="POST">
+            <input type="email" name="Email" id="Email" placeholder="Email">
+            <br>
+
+            <input type="password" name = "Password" id="Password" placeholder="Password">
+            <br>
+
+            <button type="submit">Register</button>
+        </form>
+        <br>
+        <a href="{{url_for('login')}}">Login</a>
+{% endblock %}

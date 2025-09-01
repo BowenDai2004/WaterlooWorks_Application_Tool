@@ -1,0 +1,8 @@
+database.db
+instance/
+
+__pycache__/
+*.pyc
+
+.vscode/
+.git_backup/

@@ -1,0 +1,160 @@
+% modified based on: https://www.overleaf.com/latex/templates/tex-cover-letter/wxpgcfqhbbmd
+
+\documentclass[12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{tgpagella}
+\usepackage{multicol}
+\usepackage{fontawesome5}
+\usepackage{xcolor}
+\usepackage{lipsum}
+
+\geometry{
+  a4paper,
+  left=10mm,
+  right=10mm,
+  bottom=13mm,
+  top=13mm
+}
+
+\pagestyle{empty}
+
+%%%%%%%%%%%% Change your first/lastname below %%%%%%%%%%%%
+
+\newcommand{\firstname}{((ApplicantFirstName))}
+\newcommand{\lastname}{((ApplicantLastName))}
+
+%%%%%%%%%%%%% Macros %%%%%%%%%%%%%
+
+%%%%%%%%%%%%% Colors %%%%%%%%%%%%%
+
+\definecolor{blueSky}{RGB}{49, 120, 198}
+\definecolor{orangeFruit}{RGB}{224, 128, 44}
+\definecolor{redBlood}{RGB}{188, 20, 20}
+\definecolor{grayShy}{RGB}{153, 150, 142}
+
+\newcommand{\mainColor}{blueSky} % pick a color above, or add a custom one
+
+%%%%%%%%%%%%% Spaces %%%%%%%%%%%%%
+
+\newlength{\spacebox}
+\settowidth{\spacebox}{123456789}
+
+% Horizontal %
+
+\newcommand{\xhspace}{\hspace*{0.1em}}
+\newcommand{\shspace}{\hspace*{0.8em}}
+
+% Vertical %
+
+\newcommand{\xvspace}{\vspace*{0.1em}}
+\newcommand{\svspace}{\vspace*{0.5em}}
+\newcommand{\mvspace}{\vspace*{1.5em}}
+\newcommand{\hvspace}{\vspace*{2.5em}}
+
+\newcommand{\negxvspace}{\vspace*{-0.2em}}
+\newcommand{\negsvspace}{\vspace*{-0.5em}}
+\newcommand{\negmvspace}{\vspace*{-1em}}
+\newcommand{\neghvspace}{\vspace*{-1.5em}}
+
+%%% Personal Details Macro %%%
+
+\newcommand{\userInfo}[4]{
+    \begin{flushleft}
+        \color{\mainColor}
+        \Huge
+        \textbf{\MakeUppercase{\lastname}}
+        \color{black}
+        \textbf{\firstname}
+        \color{\mainColor}
+        \noindent\rule{19.1cm}{0.8pt}
+        \color{grayShy}
+        \small
+        \par
+        \parbox{7\spacebox} {
+            (% if UserAddress and UserCity %)
+            \faMap \shspace #1 - #2 \par \svspace
+            (% endif %)
+            (% if PhoneNumber %)
+            \faPhone \shspace #3 \par \svspace
+            (% endif %)
+            (% if Email %)
+            \faEnvelopeOpen \shspace \texttt{#4} \par \svspace %TODO: add a link for contact info
+            (% endif %)
+        }
+        \color{\mainColor}
+        \mvspace
+    \end{flushleft}
+    \negmvspace
+}
+
+%%% Company Details Macro %%%
+
+\newcommand{\companyInfo}[3]{
+    \begin{flushright}
+        \parbox{4\spacebox}{
+            \raggedleft
+            \small
+            \textbf{\today}\par
+            \xvspace
+            \textbf{#1}\par
+            \mvspace
+            \color{grayShy}
+            \textsc{\MakeLowercase{#2}}\par
+            \xvspace
+            \textsc{\MakeLowercase{#3}}\par 
+            \color{black}
+        }
+    \end{flushright} 
+    \hvspace
+}
+
+%%% Title Macro %%%
+
+\newcommand{\object}[1]{
+    \small
+    \color{\mainColor} \textbf{Subject :} \color{black} \textbf{#1} \par
+}
+
+%%% Content Macro %%%
+
+\newcommand{\content}[1]{
+    \mvspace
+    \begin{flushleft}
+        \parbox{10.3\spacebox}{
+          #1\par
+        }\par
+    \end{flushleft}
+}
+
+%%% Signature Macro %%%
+
+\newcommand{\signature}{
+    \svspace
+    \parbox{3\spacebox}{
+      Sincerly,\par
+      \svspace \hspace{-0.3em}
+      \textbf{\color{\mainColor} \MakeUppercase{\lastname} \color{black} \firstname}\par
+      \svspace \svspace
+       %TODO: allow user to insert their signature here
+    }\par
+}
+
+%%%%%%%%%%%% Your cover letter below %%%%%%%%%%%%
+
+\begin{document}
+\fontfamily{phv}\selectfont
+\userInfo{((UserAddress))}{((UserCity))}{((PhoneNumber))}{((Email))}
+\companyInfo{((Company))}{((CompanyAddress))}{((PostalCode)), ((CompanyCity)) ((CompanyProvince))}
+\object{((Title))}
+\content{
+  Dear {Hiring Committee}, \\
+  {(% for p in Paragraphs %)
+    \par ((p|escapeLatex))
+    \\
+    (% endfor %)
+  }
+}
+\signature
+\end{document}

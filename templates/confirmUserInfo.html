@@ -1,0 +1,26 @@
+{% extends "navBar.html" %}
+
+{% block main %}
+        <form method="POST">
+            <input type="text" id="ApplicantFirstName" name="ApplicantFirstName" value="{{data.ApplicantFirstName}}" placeholder = "Firstname" required>
+            <br>
+        
+            <input type="text" id="ApplicantLastName" name="ApplicantLastName" value="{{data.ApplicantLastName}}" placeholder="Last name" required>
+            <br>
+            
+            <input type="text" id="UserAddress" name="UserAddress" value="{{data.UserAddress | default('')}}" placeholder="Address">
+            <br>
+            
+            <input type = "text" id="UserCity" name = "UserCity" value="{{data.UserCity | default('')}}" placeholder="City">
+            <br>
+
+            <input type="text" id="PhoneNumber" name="PhoneNumber" value="{{data.PhoneNumber | default('')}}" placeholder="Phone number">
+            <br>
+
+            <input type="email" id="Email" name="Email" value="{{data.Email | default('')}}" placeholder="Email">
+            <br>
+            <!--make the default to be waterloo email-->
+
+            <button type="submit">Next</button>
+        </form>
+{% endblock %}

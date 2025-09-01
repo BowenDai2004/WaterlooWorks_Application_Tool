@@ -1,0 +1,12 @@
+{% extends "navBar.html" %}
+{% block main %}
+        <h1>View and edit your cover letters</h1>
+        {% for coverLetter in coverLetterList %}
+            <a href="{{ url_for('viewCoverLetter', coverLetter_id=coverLetter.id) }}">{{ coverLetter.fileName }}</a>
+            <br>
+        {% endfor %}
+        
+        <br>
+        <a href="{{ url_for('apply') }}">apply</a>
+        
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+        <h1>Home</h1>
+
+        <a href="{{ url_for('inputResume') }}">update resume</a>
+        <br>
+
+        <a href="{{ url_for('confirmUserInfo') }}">update personal info</a>
+        <br>
+
+        <a href="{{ url_for('waterlooworkInfo') }}">generate cover letters</a>
+        <br>
+
+        <a href="{{ url_for('coverLetterList') }}">view your cover letters</a>
+        <br>
+
+        <a href="{{ url_for('logout') }}">logout</a>
+{% endblock %}

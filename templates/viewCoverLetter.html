@@ -1,0 +1,30 @@
+{% extends "navBar.html" %}
+{% block main %}
+        {% for key, value in job.jobDict.items() %}
+            <h1>{{ key }}</h1>
+            <p>{{ value }}</p>
+        {% endfor %}
+        <form method="POST">
+            <!--use enter to jump from title to paragraphs-->
+            <input type="text" id="Title" name="Title" value="{{ coverLetter.coverLetter["Title"] }}" placeholder="Title of the cover letter">
+            <br>
+
+            <textarea type = "text" id = "Paragraphs" name = "Paragraphs" placeholder="Enter the cover letter's paragraphs here...">{{ coverLetter.coverLetter["Paragraphs"] | join("\n\n") }}</textarea>
+            <br>
+
+            <button type="submit">submit</button>
+        </form>
+
+        <iframe src = "{{ url_for('coverLetterPdf', coverLetter_id = coverLetter.id) }}#zoom=100"></iframe>
+        
+        {% if prev_id %}
+            <a href="{{ url_for('viewCoverLetter', coverLetter_id = prev_id) }}" id = "prev"><</a>
+        {% endif %}
+
+        <a href="{{ url_for('coverLetterList') }}">list</a>
+
+        {% if next_id %}
+            <a href="{{ url_for('viewCoverLetter', coverLetter_id = next_id) }}" id = "next">></a>
+        {% endif %}
+
+{% endblock %}
