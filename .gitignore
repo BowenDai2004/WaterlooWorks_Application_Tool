@@ -6,3 +6,8 @@ __pycache__/
 
 .vscode/
 .git_backup/
+
+dockerTest.py
+
+secrets.json
+.env

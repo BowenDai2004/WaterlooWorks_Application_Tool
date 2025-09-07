@@ -23,7 +23,7 @@ def generateCoverLetter(jobDetail: dict, resume: str) -> dict:
                             'Return the answer using the following python dict format:'
                             '{'
                             '"Title":"title of the cover letter",'
-                            '"Paragraphs":["pharagraph1","pharagraph2","pharagraph3",...]'
+                            '"Paragraphs":["paragraph1","paragraph2","paragraph3",...]'
                             '}'
                             'Do not include salutation and signature. Only return body paragraphs and title of the cover letter.')
             },{
@@ -33,6 +33,57 @@ def generateCoverLetter(jobDetail: dict, resume: str) -> dict:
         ]
     )
     
+    return ast.literal_eval(response.choices[0].message.content)
+
+def generateImproveCoverLetter(coverLetter, userFeedback) -> dict:
+    client = OpenAI(
+        api_key= os.environ.get("OPENAI_API_KEY")
+    )
+    response = client.chat.completions.create(
+        model="gpt-4.1",
+        messages=[
+            {
+                "role": "user",
+                "content": (f"Improve the following cover letter according to user's feedback: {str(coverLetter)}"
+                            'Return the answer using the following python dict format:'
+                            '{'
+                            '"Title":"title of the cover letter",'
+                            '"Paragraphs":["paragraph1","paragraph2","paragraph3",...]'
+                            '}'
+                            'Do not include salutation and signature. Only return body paragraphs and title of the cover letter.')
+            },{
+                "role": "user",
+                "content": f"User feedback: {userFeedback}"
+            }
+        ]
+    )
+
+    return ast.literal_eval(response.choices[0].message.content)
+
+
+def generateEmail(jobDescription, resume) -> dict:
+    client = OpenAI(
+        api_key= os.environ.get("OPENAI_API_KEY")
+    )
+    response = client.chat.completions.create(
+        model="gpt-4.1",
+        messages=[
+            {
+                "role": "system",
+                "content": ('Write a professional email to the hiring manager based on the job description and resume provided by user.'
+                            'Return the result in the following python dict format:'
+                            '{'
+                            '"Subject": "email subject", '
+                            '"Body": "email body"'
+                            '}'
+                            'Only include json in the response.')
+            },{
+                "role": "user",
+                "content":f"Job description: {jobDescription}. Resume: {resume}"
+            }
+        ]
+    )
+
     return ast.literal_eval(response.choices[0].message.content)
 
 # TODO comfirm personal details with user and ask user to enter missing info

@@ -15,8 +15,15 @@
             <button type="submit">submit</button>
         </form>
 
+        <form method="POST" action="{{ url_for('improveCoverLetter', coverLetter_id=coverLetter.id) }}">
+            <textarea name="userFeedback" placeholder="Enter your feedback here..."></textarea>
+            <button type="submit">Improve Cover Letter</button>
+        </form>
+
         <iframe src = "{{ url_for('coverLetterPdf', coverLetter_id = coverLetter.id) }}#zoom=100"></iframe>
         
+        <a href="{{ url_for('downloadCoverLetter', coverLetter_id = coverLetter.id) }}">Download PDF</a>
+
         {% if prev_id %}
             <a href="{{ url_for('viewCoverLetter', coverLetter_id = prev_id) }}" id = "prev"><</a>
         {% endif %}

@@ -4,19 +4,24 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import NoSuchElementException
 
 import requests
 import json
 import re
 from bs4 import BeautifulSoup
 
+import tempfile
+import time
 from pathlib import Path
 
-import asyncio
 # for terminal to display special char
 import sys
 import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+WAITTIME = 300
 
 # TODO what if the user does not have chrome?
 def createSession():
@@ -35,7 +40,7 @@ def quitDriver(driver):
 def getVerificationCode(username, password, driver):
     driver.get("https://waterlooworks.uwaterloo.ca/home.htm")
 
-    wait = WebDriverWait(driver, 300) #wait up to 5 min
+    wait = WebDriverWait(driver, WAITTIME) #wait up to 5 min
 
     element = driver.find_element(By.LINK_TEXT, "Students/Alumni/Staff")
     driver.execute_script("arguments[0].scrollIntoView(true);", element)
@@ -50,12 +55,12 @@ def getVerificationCode(username, password, driver):
     return driver.find_element(By.XPATH, "//div[contains(@class,'verification-code')]").text
 
 def getCookie(driver):
-    wait = WebDriverWait(driver, 300)
+    wait = WebDriverWait(driver, WAITTIME)
 
     wait.until(EC.element_to_be_clickable((By.ID, "dont-trust-browser-button"))).click()
     wait.until(EC.url_contains("dashboard"))
 
-    driver.get("https://waterlooworks.uwaterloo.ca/myAccount/co-op/direct/jobs.htm")
+    driver.get("https://waterlooworks.uwaterloo.ca/myAccount/dashboard.htm")
     cookies = driver.get_cookies()
     return cookies
 
@@ -63,17 +68,17 @@ def setCookies(cookies, session):
     for c in cookies:
         session.cookies.set(c['name'], c['value'])    
 
-def getRawTokenHtml(session):
+def getRawTokenHtml(session, coopUrl):
     getTokenHeaders = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
         "Host": "waterlooworks.uwaterloo.ca",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
         "Referer": "https://waterlooworks.uwaterloo.ca/myAccount/co-op/student.htm"
     }
-    return session.get("https://waterlooworks.uwaterloo.ca/myAccount/co-op/direct/jobs.htm", headers=getTokenHeaders, cookies = session.cookies).text
+    return session.get(coopUrl, headers=getTokenHeaders, cookies = session.cookies).text
 
 # TODO get job id list for a folder
-def getJobIDList(rawTokenHtml, session, folderValue=[]):
+def getJobIDList(rawTokenHtml, session, coopUrl, folderValue=[]):
     bsParser = BeautifulSoup(rawTokenHtml, "html.parser")
     scripts = bsParser.find_all("script")
     jobIDToken = ''
@@ -85,7 +90,7 @@ def getJobIDList(rawTokenHtml, session, folderValue=[]):
         "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
         "Accept": "application/json, text/plain, */*",
         "User-Agent": "Mozilla/5.0",
-        "Referer": "https://waterlooworks.uwaterloo.ca/myAccount/co-op/direct/jobs.htm",
+        "Referer": coopUrl,
         "Origin": "https://waterlooworks.uwaterloo.ca"
     }
 
@@ -111,12 +116,12 @@ def getJobIDList(rawTokenHtml, session, folderValue=[]):
         "action": jobIDToken,
         "isDataViewer": "true"
     }
-    jobIDResponse = session.post("https://waterlooworks.uwaterloo.ca/myAccount/co-op/direct/jobs.htm", headers=jobIDHeaders, data=jobIDData).json()
+    jobIDResponse = session.post(coopUrl, headers=jobIDHeaders, data=jobIDData).json()
 
     totalResults = jobIDResponse["totalResults"]
     if(totalResults>defaultItemPerPage):
         jobIDData["itemsPerPage"] = totalResults
-        jobIDResponse = session.post("https://waterlooworks.uwaterloo.ca/myAccount/co-op/direct/jobs.htm", headers=jobIDHeaders, data=jobIDData).json()
+        jobIDResponse = session.post(coopUrl, headers=jobIDHeaders, data=jobIDData).json()
 
     IDList = list()
     for d in jobIDResponse["data"]:
@@ -142,10 +147,10 @@ def getFolderOption(rawTokenHtml, folderName):
                     return int(f["value"])
 
 # return txt of the job description
-def getJobDetail(jobID, jobDetailToken, session):
+def getJobDetail(jobID, jobDetailToken, session, coopUrl):
     jobDetailHeaders = {
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    "Referer": "https://waterlooworks.uwaterloo.ca/myAccount/co-op/direct/jobs.htm",
+    "Referer": coopUrl,
     "Origin": "https://waterlooworks.uwaterloo.ca",
     "User-Agent": "Mozilla/5.0",
     "X-Requested-With": "XMLHttpRequest"
@@ -155,8 +160,8 @@ def getJobDetail(jobID, jobDetailToken, session):
         "action": jobDetailToken,
         "postingId":jobID
     }
-    
-    return session.post("https://waterlooworks.uwaterloo.ca/myAccount/co-op/direct/jobs.htm", headers=jobDetailHeaders, data = jobDetailData).content.decode("latin1")
+
+    return session.post(coopUrl, headers=jobDetailHeaders, data = jobDetailData).content.decode("latin1")
 
 # TODO: any better way to know job ID? get it from the name of the file???
 def extractJobDetail(rawHtml, jobID):
@@ -226,21 +231,22 @@ def extractJobDetail(rawHtml, jobID):
     return jobDetail
 
 # Assuming:
-# all cover letters are in the folder "coverLetter" 
 # the file name of the cover letter will be the job id
 # jobID is str (test if int works?)
-def uploadCoverLetter(driver, jobId):
+def uploadCoverLetter(driver, jobId, coverLetterPDF):
     # open upload page
     driver.get("https://waterlooworks.uwaterloo.ca/myAccount/co-op/full/documents.htm")
-    wait = WebDriverWait(driver, 300) #wait up to 5 min
+    wait = WebDriverWait(driver, WAITTIME) #wait up to 5 min
 
     wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Upload A Document"))).click()
     wait.until(EC.visibility_of_element_located((By.ID, "docName"))).send_keys(jobId)
     Select(driver.find_element(By.ID, "docType")).select_by_visible_text("Cover Letter - .pdf")
-    coverLetterPath = Path.cwd() / "coverLetter" / f"{jobId}.pdf"
-    driver.find_element(By.ID, "fileUpload_docUpload").send_keys(str(coverLetterPath))
-
-    wait.until(EC.text_to_be_present_in_element((By.ID, "fileLink_docUpload"), f"{jobId}.pdf"))
+    with tempfile.TemporaryDirectory() as tempdir:
+        coverLetterPath = f"{tempdir}/{jobId}.pdf"
+        with open(coverLetterPath, "wb") as f:
+            f.write(coverLetterPDF)
+        driver.find_element(By.ID, "fileUpload_docUpload").send_keys(str(coverLetterPath))
+        wait.until(EC.text_to_be_present_in_element((By.ID, "fileLink_docUpload"), f"{jobId}.pdf"))
     driver.execute_script("document.getElementById('fileUploadForm').submit();")
 
 # TODO handle positions that requires other document
@@ -248,7 +254,7 @@ def uploadCoverLetter(driver, jobId):
 # assuming the resume name is unique
 def uploadApplicationPackage(driver, jobId, resumeName):
     driver.get("https://waterlooworks.uwaterloo.ca/myAccount/co-op/full/documents.htm")
-    wait = WebDriverWait(driver, 300)
+    wait = WebDriverWait(driver, WAITTIME)
 
     wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Create An Application Package"))).click()
     wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys(jobId)
@@ -266,7 +272,66 @@ def uploadApplicationPackage(driver, jobId, resumeName):
     Select(driver.find_element(By.ID, "66")).select_by_visible_text(jobId)
 
     driver.execute_script("document.getElementById('savePackageForm').submit()")
+
+#TODO prescrenning questions
+#TODO other application requirement
+def submitApplication(jobId, coopUrl, driver, coverLetterName, resumeName):
+    wait = WebDriverWait(driver, WAITTIME)
+    driver.get(coopUrl)
+    wait.until(EC.visibility_of_element_located((By.NAME,"emptyStateKeywordSearch"))).send_keys(jobId + Keys.ENTER)
+    wait.until(EC.element_to_be_clickable(("css selector", "a.overflow--ellipsis"))).click()
     
+    currentHandles = driver.window_handles
+    wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//span[text()='Apply']]"))).click()
+    wait.until(lambda d: len(d.window_handles) > len(currentHandles))
+    driver.switch_to.window(driver.window_handles[-1])
+    wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+    
+    try:
+        driver.find_element(By.XPATH, "//span[@class='js--step-title' and contains(text(), 'Pre-Screening Questions')]")
+        #TODO handle pre-screening questions
+    except NoSuchElementException:
+        pass
+    
+    wait.until(EC.element_to_be_clickable((By.XPATH, "//span[@class = 'label--span' and contains(text(), 'Create Custom Application Package')]"))).click()
+    
+    # upload cover letter according to coverLetterName
+    wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Select Existing Cover Letter')]"))).click()
+    wait.until(EC.element_to_be_clickable((By.ID, "selectExisting_66"))).click()
+    coverLetterSelect = Select(driver.find_element(By.ID, "selectExisting_66"))
+    coverLetterSelect.select_by_visible_text(coverLetterName)
+    driver.execute_script("addExistingDocToSelection(66);$('#selectExistingDocModal_66').uiHide();")
+
+    # upload resume according to resumeName
+    wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Select Existing Résumé')]"))).click()
+    wait.until(EC.element_to_be_clickable((By.ID, "selectExisting_67"))).click()
+    resumeSelect = Select(driver.find_element(By.ID, "selectExisting_67"))
+    resumeSelect.select_by_visible_text(resumeName)
+    driver.execute_script("addExistingDocToSelection(67);$('#selectExistingDocModal_67').uiHide();")
+
+    driver.execute_script("$('#applyWizard').uiWizard('nextStep');")
+    driver.execute_script("$('#applyWizard').uiWizard('finish');;")
+    time.sleep(10)
+
+from datetime import datetime
+def monitor_session(driver):
+    print(f"Session monitoring started at {datetime.now()}", flush=True)
+    longSleep = True
+    while True:
+        if longSleep:
+            time.sleep(1740)
+            longSleep = False
+        else:
+            time.sleep(30)
+        if driver.find_element(By.XPATH, "//button[contains(text(), 'Keep Me Logged In')]").is_displayed():
+            driver.find_element(By.XPATH, "//button[contains(text(), 'Keep Me Logged In')]").click()
+            print(f"Session refreshed at {datetime.now()}", flush=True)
+            longSleep = True
+
+def sanitize_filename(filename):
+    # Remove forbidden characters: / \ : * ? " < > |
+    return re.sub(r'[\/\\:\*\?"<>\|]', '', filename)
+
 # TODO apply the position using the applicatioin package
 # TODO only get jobId from a saved job folder
 
@@ -274,15 +339,22 @@ if __name__ == "__main__":
     
     options = Options()
     options.add_argument("--start-maximized")
+    #options.add_argument('--headless')
     driver = webdriver.Chrome(options = options)
 
     session = createSession()
-    print(getVerificationCode("waterlooEmail", "password", driver))
-    print(getCookie(driver))
-    #setCookies(getCookie("waterlooEmail", "password", driver), session)
-    
-    
+    with open("secrets.json", 'r') as f:
+        secrets = json.load(f)
+    print(getVerificationCode(secrets["email"], secrets["password"], driver), flush=True)
+    setCookies(getCookie(driver), session)
+    submitApplication(jobId="434295", coopUrl="https://waterlooworks.uwaterloo.ca/myAccount/co-op/full/jobs.htm", driver=driver, resumeName="defaultTest", coverLetterName="test3")
+
     """
+    with open("417355.pdf", "rb") as f:
+        uploadCoverLetter(driver, "417355", f.read())
+    uploadApplicationPackage(driver, jobId="417355", resumeName="defaultTest")
+    
+    
     rawToken = getRawTokenHtml(session)
     testFolder = getFolderOption(rawToken, "test")
     test2Folder = getFolderOption(rawToken, "test2")

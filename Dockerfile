@@ -1,7 +1,5 @@
 FROM python:3.11-slim
 
-ENV OPENAI_API_KEY = your_API_key
-
 WORKDIR /coverLetterTool
 
 RUN chmod -R 777 /coverLetterTool
